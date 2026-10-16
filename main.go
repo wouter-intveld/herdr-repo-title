@@ -108,6 +108,9 @@ func run() error {
 
 	c := client{socket: p.socket, timeout: callTimeout}
 	written := loadState(p.state)
+	// Pane tokens live in the server's memory only, so this record need not
+	// outlive the process: a restarted loop simply reports each pane once more.
+	reported := map[string]string{}
 	log.Printf("started, pid %d, socket %s", os.Getpid(), p.socket)
 
 	failures := 0
@@ -131,7 +134,9 @@ func run() error {
 			}
 		} else {
 			failures = 0
-			if apply(c, snap, written) {
+			titles := paneTitles(snap.Panes)
+			reportPanes(c, titles, reported)
+			if renameTabs(c, snap, titles, written) {
 				if err := saveState(p.state, written); err != nil {
 					log.Print(err)
 				}
@@ -147,19 +152,58 @@ func run() error {
 	}
 }
 
-// apply renames every managed tab whose title is out of date and records what
-// it wrote. It reports whether the record changed.
-func apply(c client, snap snapshot, written map[string]string) bool {
+// paneTitles names every pane whose directory Herdr knows, resolving each
+// distinct directory once.
+func paneTitles(panes []pane) map[string]string {
+	byDir := map[string]string{}
+	titles := make(map[string]string, len(panes))
+	for _, p := range panes {
+		dir := paneDir(p)
+		if dir == "" {
+			continue
+		}
+		t, ok := byDir[dir]
+		if !ok {
+			t = title(dir)
+			byDir[dir] = t
+		}
+		titles[p.ID] = t
+	}
+	return titles
+}
+
+// reportPanes publishes each pane's title as the pane metadata token `repo`.
+// The Agent sidebar can render it as `$repo`, naming the repository the agent
+// itself works in rather than the tab, which follows the focused pane.
+func reportPanes(c client, titles, reported map[string]string) {
+	for id, want := range titles {
+		if reported[id] == want {
+			continue
+		}
+		if err := c.reportRepo(id, want); err != nil {
+			log.Print(err)
+			continue
+		}
+		reported[id] = want
+	}
+	for id := range reported {
+		if _, ok := titles[id]; !ok {
+			delete(reported, id)
+		}
+	}
+}
+
+// renameTabs renames every managed tab whose title is out of date and records
+// what it wrote. It reports whether the record changed.
+func renameTabs(c client, snap snapshot, titles, written map[string]string) bool {
 	focused := make(map[string]string, len(snap.Layouts))
 	for _, l := range snap.Layouts {
 		focused[l.TabID] = l.FocusedPaneID
 	}
-	byID := make(map[string]pane, len(snap.Panes))
-	first := make(map[string]pane, len(snap.Tabs))
+	first := make(map[string]string, len(snap.Tabs))
 	for _, p := range snap.Panes {
-		byID[p.ID] = p
 		if _, ok := first[p.TabID]; !ok {
-			first[p.TabID] = p
+			first[p.TabID] = p.ID
 		}
 	}
 
@@ -170,18 +214,14 @@ func apply(c client, snap snapshot, written map[string]string) bool {
 		if !managed(t.Label, written[t.ID]) {
 			continue
 		}
-		p, ok := byID[focused[t.ID]]
+		paneID, ok := focused[t.ID]
 		if !ok {
-			p, ok = first[t.ID]
+			paneID = first[t.ID]
 		}
+		want, ok := titles[paneID]
 		if !ok {
 			continue
 		}
-		dir := paneDir(p)
-		if dir == "" {
-			continue
-		}
-		want := title(dir)
 		if t.Label != want {
 			if err := c.renameTab(t.ID, want); err != nil {
 				log.Print(err)

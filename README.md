@@ -1,7 +1,8 @@
 # herdr-repo-title
 
 A [Herdr](https://herdr.dev) plugin that names each tab after the git
-repository its focused pane is in. That is all it does.
+repository its focused pane is in, and tells the Agent sidebar which
+repository each agent works in.
 
 | Focused pane is in            | Tab label     |
 | ----------------------------- | ------------- |
@@ -16,6 +17,24 @@ repository its focused pane is in. That is all it does.
 - Rename a tab yourself and the plugin leaves it alone. Rename it back to a
   number (Herdr's default) or to the name the plugin last gave it to hand it
   back.
+
+## Agent sidebar
+
+Herdr's Agent sidebar shows the tab name by default, so an agent in a split tab
+is listed under whatever pane has focus. The plugin also reports each pane's
+repository as the pane token `repo`; put `$repo` where the sidebar has `tab`
+in Herdr's `config.toml`:
+
+```toml
+[ui.sidebar.agents]
+rows = [
+  ["state_icon", "machine", "workspace", "$repo"],
+  ["agent"],
+]
+```
+
+Then `herdr server reload-config`. Pane tokens are not restored after a
+server restart; the plugin reports them again when it starts.
 
 Linux and macOS only.
 

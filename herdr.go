@@ -106,3 +106,13 @@ func (c client) snapshot() (snapshot, error) {
 func (c client) renameTab(tabID, label string) error {
 	return c.call("tab.rename", map[string]string{"tab_id": tabID, "label": label}, nil)
 }
+
+// reportRepo sets the pane metadata token `repo`. Tokens are display-only and
+// are not restored after a server restart.
+func (c client) reportRepo(paneID, repo string) error {
+	return c.call("pane.report_metadata", map[string]any{
+		"pane_id": paneID,
+		"source":  "wouter-intveld.repo-title",
+		"tokens":  map[string]string{"repo": repo},
+	}, nil)
+}

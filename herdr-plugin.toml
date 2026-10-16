@@ -1,0 +1,22 @@
+id = "def4ce.repo-title"
+name = "Repo Title"
+version = "0.1.0"
+min_herdr_version = "0.9.0"
+description = "Names each tab after the git repository its focused pane is in"
+platforms = ["linux", "macos"]
+
+[[build]]
+command = ["go", "build", "-o", "herdr-repo-title", "."]
+
+# Herdr runs startup hooks only when its server starts. The process polls until
+# that server goes away.
+[[startup]]
+command = ["./herdr-repo-title", "run"]
+
+# Starts the loop now (after install or upgrade) without stopping the server.
+[[actions]]
+id = "restart"
+title = "Repo Title: restart"
+description = "Replace the running Repo Title loop with a fresh one"
+contexts = ["global"]
+command = ["./herdr-repo-title", "restart"]

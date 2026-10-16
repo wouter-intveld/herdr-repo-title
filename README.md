@@ -24,8 +24,8 @@ Linux and macOS only.
 Needs Herdr 0.9.0+ and Go 1.24+ (built at install time).
 
 ```sh
-herdr plugin install def4ce/herdr-repo-title
-herdr plugin action invoke def4ce.repo-title.restart
+herdr plugin install wouter-intveld/herdr-repo-title
+herdr plugin action invoke wouter-intveld.repo-title.restart
 ```
 
 Herdr starts plugins only when its server starts; the second line starts this
@@ -36,7 +36,7 @@ one in the running server. Run it again after an update.
 ```sh
 go build -o herdr-repo-title .
 herdr plugin link "$PWD"
-herdr plugin action invoke def4ce.repo-title.restart
+herdr plugin action invoke wouter-intveld.repo-title.restart
 ```
 
 ## How it works
@@ -51,7 +51,7 @@ to the nearest `.git` and resolving git's common dir, without spawning git.
 The loop exits when its server's socket goes away (or is replaced), and after
 30 consecutive failed polls. One loop runs per Herdr session, guarded by a
 `flock`. Files live in `HERDR_PLUGIN_STATE_DIR`
-(`~/.local/state/herdr/plugins/def4ce.repo-title/` on Linux), one set per
+(`~/.local/state/herdr/plugins/wouter-intveld.repo-title/` on Linux), one set per
 session socket:
 
 - `<hash>.log`: start, renames, errors
